@@ -37,6 +37,7 @@ class BoardConfig:
         self.tl = set()
         self.dw = set()
         self.tw = set()
+        self.size = 15
 
 
 class StandardBoardConfig(BoardConfig):
@@ -93,12 +94,28 @@ class StandardBoardConfig(BoardConfig):
         self.tl.add((14, 8))
 
     def add_dws(self):
-        # TODO
-        pass
+        self.dw.add((1, 5))
+        self.dw.add((1, 9))
+        self.dw.add((3, 7))
+        self.dw.add((5, 1))
+        self.dw.add((5, 13))
+        self.dw.add((7, 3))
+        self.dw.add((7, 11))
+        self.dw.add((9, 1))
+        self.dw.add((9, 13))
+        self.dw.add((11, 7))
+        self.dw.add((13, 5))
+        self.dw.add((13, 9))
 
     def add_tws(self):
-        # TODO
-        pass
+        self.tw.add((0, 3))
+        self.tw.add((0, 11))
+        self.tw.add((3, 0))
+        self.tw.add((3, 14))
+        self.tw.add((11, 0))
+        self.tw.add((11, 14))
+        self.tw.add((14, 3))
+        self.tw.add((14, 11))
 
 
 def compute_highest_score(board):
