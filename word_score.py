@@ -121,14 +121,56 @@ class StandardBoardConfig(BoardConfig):
 
 def compute_highest_score(board, rack):
     dictionary = load_dictionary()
-
-    new_tileses = []
+    max_score = 0
     for i in range(1, len(rack) + 1):
-        new_tileses.append(itertools.permutations(rack, i))
-    for perm in new_tileses:
-        for elem in perm:
-            print(elem)
-    compute_score(board)
+        for word in itertools.permutations(rack, i):
+            max_score = max(max_score, max(try_horizontal_placements(board, word), try_vertical_placements(board, word)))
+
+    return max_score
+
+
+def try_horizontal_placements(board, word):
+    max_score = 0
+    for r in range(board.config.size):
+        for c in range(board.config.size - len(word)):
+            board.clear_new_tiles()
+            cur_location = (r, c)
+            for tile in word:
+                tile.location = cur_location
+                is_added = False
+                while not is_added:
+                    is_added = board.add_new_tile(tile)
+                    tile.location = (tile.location[0], tile.location[1] + 1)
+                if is_added:
+                    cur_location = (tile.location[0], tile.location[1] + 1)
+                else:
+                    break
+            if len(board.new_tiles) == len(word):
+                max_score = max(max_score, compute_score(board))
+
+    return max_score
+
+
+def try_vertical_placements(board, word):
+    max_score = 0
+    for r in range(board.config.size):
+        for c in range(board.config.size - len(word)):
+            board.clear_new_tiles()
+            cur_location = (r, c)
+            for tile in word:
+                tile.location = cur_location
+                is_added = False
+                while not is_added:
+                    is_added = board.add_new_tile(tile)
+                    tile.location = (tile.location[0] + 1, tile.location[1])
+                if is_added:
+                    cur_location = (tile.location[0] + 1, tile.location[1])
+                else:
+                    break
+            if len(board.new_tiles) == len(word):
+                max_score = max(max_score, compute_score(board))
+
+    return max_score
 
 
 def load_dictionary():
@@ -137,13 +179,15 @@ def load_dictionary():
 
 
 def compute_score(board):
-    """ compute the score based on what's already on the board and the tile/position map given
+    """ compute the score based on the old and new tiles on the board
 
     :param board - an object describing the game board
     """
 
     if not check_validity(board):
         return 0
+
+    return 1
 
 
 def find_new_words(board):
@@ -294,6 +338,10 @@ class GameBoard:
         else:
             return False
 
+    def clear_new_tiles(self):
+        self.new_tiles = {}
+        self.orientation = Orientation.NONE
+
     def neighborify(self, tile):
         loc = tile.location
 
@@ -434,4 +482,4 @@ if __name__ == '__main__':
             Tile(letter='c'),
             Tile(letter='k')]
 
-    compute_highest_score(game_board, rack)
+    print(compute_highest_score(game_board, rack))
