@@ -1,4 +1,5 @@
 from enum import Enum
+import itertools
 
 tile_points = {
     'a': 1,
@@ -118,8 +119,15 @@ class StandardBoardConfig(BoardConfig):
         self.tw.add((14, 11))
 
 
-def compute_highest_score(board):
+def compute_highest_score(board, rack):
     dictionary = load_dictionary()
+
+    new_tileses = []
+    for i in range(1, len(rack) + 1):
+        new_tileses.append(itertools.permutations(rack, i))
+    for perm in new_tileses:
+        for elem in perm:
+            print(elem)
     compute_score(board)
 
 
@@ -250,10 +258,10 @@ class Orientation(Enum):
 
 
 class GameBoard:
-    def __init__(self, **kwargs):
+    def __init__(self, board_config, **kwargs):
         self.old_tiles = kwargs.get('old_tiles', {})
         self.new_tiles = kwargs.get('new_tiles', {})
-        self.board_size = kwargs.get('board_size', 15)
+        self.config = board_config
         self.orientation = Orientation.NONE
 
     def add_old_tile(self, tile):
@@ -314,7 +322,7 @@ class GameBoard:
             tile.right.left = tile
 
     def is_on_board(self, tile):
-        return 0 <= tile.location[0] < self.board_size and 0 <= tile.location[1] < self.board_size
+        return 0 <= tile.location[0] < self.config.size and 0 <= tile.location[1] < self.config.size
 
 
 class Tile:
@@ -333,6 +341,12 @@ class Tile:
                self.left is not None or \
                self.right is not None
 
+    def __str__(self):
+        return self.letter
+
+    def __repr__(self):
+        return self.__str__()
+
     def __eq__(self, other):
         try:
             return self.letter == other.letter and \
@@ -345,8 +359,8 @@ class Tile:
         return hash(self.letter + str(self.is_wildcard) + str(self.location))
 
 
-def make_game_board():
-    game_board = GameBoard()
+def make_game_board(config):
+    game_board = GameBoard(config)
 
     game_board.add_old_tile(Tile(letter='t', location=(4, 4)))
     game_board.add_old_tile(Tile(letter='o', location=(4, 5)))
@@ -409,9 +423,15 @@ def make_game_board():
 
 
 if __name__ == '__main__':
-    game_board = make_game_board()
+    config = StandardBoardConfig()
+    game_board = make_game_board(config)
 
     # for word in find_new_words(game_board):
     #     print(''.join([x.letter for x in word]))
 
-    compute_highest_score(game_board)
+    rack = [Tile(letter='w'),
+            Tile(letter='i'),
+            Tile(letter='c'),
+            Tile(letter='k')]
+
+    compute_highest_score(game_board, rack)
