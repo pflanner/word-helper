@@ -493,10 +493,10 @@ def make_game_board(config):
     game_board.add_old_tile(Tile(letter='o', location=(14, 6)))
     game_board.add_old_tile(Tile(letter='n', location=(14, 7)))
 
-    game_board.add_new_tile(Tile(letter='w', location=(9, 0)))
-    game_board.add_new_tile(Tile(letter='i', location=(10, 0)))
-    game_board.add_new_tile(Tile(letter='c', location=(11, 0)))
-    game_board.add_new_tile(Tile(letter='k', location=(12, 0)))
+    # game_board.add_new_tile(Tile(letter='w', location=(9, 0)))
+    # game_board.add_new_tile(Tile(letter='i', location=(10, 0)))
+    # game_board.add_new_tile(Tile(letter='c', location=(11, 0)))
+    # game_board.add_new_tile(Tile(letter='k', location=(12, 0)))
 
     return game_board
 
@@ -515,3 +515,4 @@ if __name__ == '__main__':
             Tile(letter='k')]
 
     print(compute_highest_score(game_board, rack))
+    print(game_board.new_tiles)
