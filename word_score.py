@@ -120,7 +120,6 @@ class StandardBoardConfig(BoardConfig):
 
 
 def compute_highest_score(board, rack):
-    dictionary = load_dictionary()
     max_score = 0
     for i in range(1, len(rack) + 1):
         for word in itertools.permutations(rack, i):
@@ -137,11 +136,9 @@ def try_horizontal_placements(board, word):
             cur_location = (r, c)
             for tile in word:
                 tile.location = cur_location
-                is_added = False
-                while not is_added:
-                    is_added = board.add_new_tile(tile)
+                while not board.add_new_tile(tile) and tile.location[1] < board.config.size:
                     tile.location = (tile.location[0], tile.location[1] + 1)
-                if is_added:
+                if tile.location in board.new_tiles:
                     cur_location = (tile.location[0], tile.location[1] + 1)
                 else:
                     break
@@ -159,11 +156,9 @@ def try_vertical_placements(board, word):
             cur_location = (r, c)
             for tile in word:
                 tile.location = cur_location
-                is_added = False
-                while not is_added:
-                    is_added = board.add_new_tile(tile)
+                while not board.add_new_tile(tile) and tile.location[0] < board.config.size:
                     tile.location = (tile.location[0] + 1, tile.location[1])
-                if is_added:
+                if tile.location in board.new_tiles:
                     cur_location = (tile.location[0] + 1, tile.location[1])
                 else:
                     break
@@ -187,14 +182,37 @@ def compute_score(board):
     if not check_validity(board):
         return 0
 
-    return 1
+    score = 0
+    for word in find_new_words(board):
+        word_score = 0
+        word_multiplier = 1
+        for tile in word:
+            tile_score = 0
+            if not tile.is_wildcard:
+                tile_score = tile_points.get(tile.letter)
+                if tile.location in board.new_tiles:
+                    if tile.location in board.config.dl:
+                        tile_score *= 2
+                    elif tile.location in board.config.tl:
+                        tile_score *= 3
+
+            if tile.location in board.config.dw:
+                word_multiplier *= 2
+            elif tile.location in board.config.tw:
+                word_multiplier *= 3
+
+            word_score += tile_score
+
+        score += word_score * word_multiplier
+
+    return score
 
 
 def find_new_words(board):
-    # compute the actual score
+    # find the new words on the board
     words = set()  # a set of tuples of tiles
 
-    for loc, tile in board.new_tiles.items():
+    for tile in board.new_tiles.values():
         word = [tile]
         cur = tile
         while cur.upper:
@@ -206,12 +224,14 @@ def find_new_words(board):
             cur = cur.lower
             word.append(cur)
 
-        if (len(board.old_tiles) == 0 and len(word) == 1) or len(word) > 1:
+        str_word = ''.join([x.letter for x in word])
+
+        if str_word in dictionary and ((len(board.old_tiles) == 0 and len(word) == 1) or len(word) > 1):
             words.add(tuple(word))
 
         word = [tile]
-        curr = tile
-        while curr.left:
+        cur = tile
+        while cur.left:
             cur = cur.left
             word.insert(0, cur)
 
@@ -220,7 +240,9 @@ def find_new_words(board):
             cur = cur.right
             word.append(cur)
 
-        if (len(board.old_tiles) == 0 and len(word) == 1) or len(word) > 1:
+        str_word = ''.join([x.letter for x in word])
+
+        if str_word in dictionary and ((len(board.old_tiles) == 0 and len(word) == 1) or len(word) > 1):
             words.add(tuple(word))
 
     return words
@@ -339,6 +361,15 @@ class GameBoard:
             return False
 
     def clear_new_tiles(self):
+        for loc, tile in self.new_tiles.items():
+            if tile.upper:
+                tile.upper.lower = None
+            if tile.lower:
+                tile.lower.upper = None
+            if tile.left:
+                tile.left.right = None
+            if tile.right:
+                tile.right.left = None
         self.new_tiles = {}
         self.orientation = Orientation.NONE
 
@@ -471,6 +502,7 @@ def make_game_board(config):
 
 
 if __name__ == '__main__':
+    dictionary = load_dictionary()
     config = StandardBoardConfig()
     game_board = make_game_board(config)
 
