@@ -1,5 +1,6 @@
 from enum import Enum
 import itertools
+import test
 
 tile_points = {
     'a': 1,
@@ -121,15 +122,24 @@ class StandardBoardConfig(BoardConfig):
 
 def compute_highest_score(board, rack):
     max_score = 0
+    max_tiles = None
+    count = 0
     for i in range(1, len(rack) + 1):
         for word in itertools.permutations(rack, i):
-            max_score = max(max_score, max(try_horizontal_placements(board, word), try_vertical_placements(board, word)))
+            count += 1
+            if count % 140 == 0:
+                test.print_progress(count)
+            h_max_score, h_max_tiles = try_horizontal_placements(board, word)
+            v_max_score, v_max_tiles = try_vertical_placements(board, word)
+            max_score = max(max_score, max(h_max_score, v_max_score))
+            max_tiles = h_max_tiles if max_score == h_max_score else v_max_tiles
 
-    return max_score
+    return max_score, max_tiles
 
 
 def try_horizontal_placements(board, word):
     max_score = 0
+    max_score_tiles = None
     for r in range(board.config.size):
         for c in range(board.config.size - len(word)):
             board.clear_new_tiles()
@@ -144,12 +154,14 @@ def try_horizontal_placements(board, word):
                     break
             if len(board.new_tiles) == len(word):
                 max_score = max(max_score, compute_score(board))
+                max_score_tiles = board.new_tiles.values()
 
-    return max_score
+    return max_score, max_score_tiles
 
 
 def try_vertical_placements(board, word):
     max_score = 0
+    max_score_tiles = None
     for r in range(board.config.size):
         for c in range(board.config.size - len(word)):
             board.clear_new_tiles()
@@ -164,8 +176,9 @@ def try_vertical_placements(board, word):
                     break
             if len(board.new_tiles) == len(word):
                 max_score = max(max_score, compute_score(board))
+                max_score_tiles = board.new_tiles.values()
 
-    return max_score
+    return max_score, max_score_tiles
 
 
 def load_dictionary():
@@ -204,6 +217,9 @@ def compute_score(board):
             word_score += tile_score
 
         score += word_score * word_multiplier
+
+        if len(board.new_tiles) == 7:
+            score += 35
 
     return score
 
@@ -341,7 +357,8 @@ class GameBoard:
 
     def add_new_tile(self, tile):
         loc = tile.location
-        if loc is not None and loc not in self.old_tiles and loc not in self.new_tiles:
+        if loc is not None and loc not in self.old_tiles and loc not in self.new_tiles \
+                and loc[0] < self.config.size and loc[1] < self.config.size:
             new_orientation = Orientation.NONE
             if self.orientation == Orientation.NONE:
                 new_orientation = Orientation.SINGLE
@@ -403,6 +420,28 @@ class GameBoard:
     def is_on_board(self, tile):
         return 0 <= tile.location[0] < self.config.size and 0 <= tile.location[1] < self.config.size
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        row_format = "{:^5}" * self.config.size
+        rows = []
+        for r in range(self.config.size):
+            row = []
+            for c in range(self.config.size):
+                loc = (r, c)
+                tile = self.new_tiles.get(loc)
+                if tile:
+                    row.append("*" + tile.letter + "*")
+                else:
+                    tile = self.old_tiles.get(loc)
+                    if tile:
+                        row.append(tile.letter)
+                    else:
+                        row.append("")
+            rows.append(row)
+        return '\n'.join([row_format.format(*r) for r in rows])
+
 
 class Tile:
     def __init__(self, **kwargs):
@@ -427,92 +466,27 @@ class Tile:
         return self.__str__()
 
     def __eq__(self, other):
-        try:
-            return self.letter == other.letter and \
-                   self.is_wildcard == other.is_wildcard and \
-                   self.location == other.location
-        except:
-            return False
+        return isinstance(other, Tile) and \
+               self.letter == other.letter and \
+               self.is_wildcard == other.is_wildcard and \
+               self.location == other.location
 
     def __hash__(self):
         return hash(self.letter + str(self.is_wildcard) + str(self.location))
 
 
-def make_game_board(config):
-    game_board = GameBoard(config)
-
-    game_board.add_old_tile(Tile(letter='t', location=(4, 4)))
-    game_board.add_old_tile(Tile(letter='o', location=(4, 5)))
-    game_board.add_old_tile(Tile(letter='u', location=(4, 6)))
-    game_board.add_old_tile(Tile(letter='t', location=(4, 7)))
-
-    game_board.add_old_tile(Tile(letter='l', location=(5, 1)))
-    game_board.add_old_tile(Tile(letter='a', location=(5, 2)))
-    game_board.add_old_tile(Tile(letter='v', location=(5, 3)))
-    game_board.add_old_tile(Tile(letter='a', location=(5, 4)))
-
-    game_board.add_old_tile(Tile(letter='s', location=(6, 4)))
-    game_board.add_old_tile(Tile(letter='h', location=(6, 5)))
-    game_board.add_old_tile(Tile(letter='r', location=(6, 6)))
-    game_board.add_old_tile(Tile(letter='e', location=(6, 7)))
-    game_board.add_old_tile(Tile(letter='d', location=(6, 8)))
-
-    game_board.add_old_tile(Tile(letter='x', location=(7, 7)))
-    game_board.add_old_tile(Tile(letter='i', location=(7, 8)))
-    game_board.add_old_tile(Tile(letter='s', location=(7, 9)))
-
-    game_board.add_old_tile(Tile(letter='e', location=(6, 1)))
-    game_board.add_old_tile(Tile(letter='a', location=(7, 1)))
-    game_board.add_old_tile(Tile(letter='s', location=(8, 1)))
-    game_board.add_old_tile(Tile(letter='e', location=(9, 1)))
-
-    game_board.add_old_tile(Tile(letter='t', location=(8, 9)))
-    game_board.add_old_tile(Tile(letter='u', location=(9, 9)))
-    game_board.add_old_tile(Tile(letter='d', location=(10, 9)))
-
-    game_board.add_old_tile(Tile(letter='h', location=(9, 10)))
-    game_board.add_old_tile(Tile(letter='i', location=(10, 10)))
-    game_board.add_old_tile(Tile(letter='r', location=(11, 10)))
-    game_board.add_old_tile(Tile(letter='e', location=(12, 10)))
-    game_board.add_old_tile(Tile(letter='d', location=(13, 10)))
-
-    game_board.add_old_tile(Tile(letter='l', location=(10, 7)))
-    game_board.add_old_tile(Tile(letter='e', location=(11, 7)))
-    game_board.add_old_tile(Tile(letter='m', location=(12, 7)))
-
-    game_board.add_old_tile(Tile(letter='s', location=(13, 5)))
-    game_board.add_old_tile(Tile(letter='h', location=(13, 6)))
-    game_board.add_old_tile(Tile(letter='o', location=(13, 7)))
-    game_board.add_old_tile(Tile(letter='r', location=(13, 8)))
-    game_board.add_old_tile(Tile(letter='e', location=(13, 9)))
-
-    game_board.add_old_tile(Tile(letter='n', location=(14, 2)))
-    game_board.add_old_tile(Tile(letter='a', location=(14, 3)))
-    game_board.add_old_tile(Tile(letter='t', location=(14, 4)))
-    game_board.add_old_tile(Tile(letter='i', location=(14, 5)))
-    game_board.add_old_tile(Tile(letter='o', location=(14, 6)))
-    game_board.add_old_tile(Tile(letter='n', location=(14, 7)))
-
-    # game_board.add_new_tile(Tile(letter='w', location=(9, 0)))
-    # game_board.add_new_tile(Tile(letter='i', location=(10, 0)))
-    # game_board.add_new_tile(Tile(letter='c', location=(11, 0)))
-    # game_board.add_new_tile(Tile(letter='k', location=(12, 0)))
-
-    return game_board
-
-
 if __name__ == '__main__':
     dictionary = load_dictionary()
     config = StandardBoardConfig()
-    game_board = make_game_board(config)
+    game_board = test.make_game_board_ben(config)
+    rack = test.make_rack("deohkoi")
 
-    # for word in find_new_words(game_board):
-    #     print(''.join([x.letter for x in word]))
+    max_score, max_tiles = compute_highest_score(game_board, rack)
+    game_board.clear_new_tiles()
+    if max_tiles:
+        for tile in max_tiles:
+            game_board.add_new_tile(tile)
+    print(max_score)
+    print(game_board)
 
-    rack = [Tile(letter='w'),
-            Tile(letter='i'),
-            Tile(letter='c'),
-            Tile(letter='k')]
-
-    print(compute_highest_score(game_board, rack))
-    print(game_board.new_tiles)
+# TODO figure out why it's placing tiles off the board
