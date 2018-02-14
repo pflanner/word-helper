@@ -478,14 +478,14 @@ if __name__ == '__main__':
     dictionary = load_dictionary()
     config = StandardBoardConfig()
     game_board = test.make_game_board_ben(config)
-    rack = test.make_rack("deohkoi")
+    game_rack = test.make_rack("deohkoi")
 
-    max_score, max_tiles = compute_highest_score(game_board, rack)
+    max_score_found, max_tiles_found = compute_highest_score(game_board, game_rack)
     game_board.clear_new_tiles()
-    if max_tiles:
-        for tile in max_tiles:
-            game_board.add_new_tile(tile)
-    print(max_score)
+    if max_tiles_found:
+        for game_board_tile in max_tiles_found:
+            game_board.add_new_tile(game_board_tile)
+    print(max_score_found)
     print(game_board)
 
 # TODO figure out why it's placing tiles off the board
