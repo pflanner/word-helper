@@ -326,7 +326,7 @@ def check_validity(board):
 
     # all new tiles are on the board
     for tile in new_tiles.values():
-        if not game_board.is_on_board(tile):
+        if not board.is_on_board(tile):
             return False
 
     return True
@@ -357,8 +357,7 @@ class GameBoard:
 
     def add_new_tile(self, tile):
         loc = tile.location
-        if loc is not None and loc not in self.old_tiles and loc not in self.new_tiles \
-                and loc[0] < self.config.size and loc[1] < self.config.size:
+        if loc is not None and loc not in self.old_tiles and loc not in self.new_tiles and self.is_on_board(tile):
             new_orientation = Orientation.NONE
             if self.orientation == Orientation.NONE:
                 new_orientation = Orientation.SINGLE
